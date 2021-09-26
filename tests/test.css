@@ -1,0 +1,11 @@
+QPushButton {
+    background-color: aquamarine;
+    border-radius: 4px;
+
+    color: blueviolet;
+}
+
+QPushButton {
+    background-color: aqua;
+    border-radius: 4px;
+}
