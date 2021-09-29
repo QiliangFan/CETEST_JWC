@@ -1,3 +1,4 @@
 qt-material
 pyqt5
 pandas
+openpyxl

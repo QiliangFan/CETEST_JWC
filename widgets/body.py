@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout
 from PyQt5.QtWidgets import QApplication
-from .utils import signed_teachers, main_monitors, candidates, jin_nan, balitai
+from .utils import signed_teachers, main_monitors, candidates, exam_room
 import pandas as pd
 
 button_style = """
@@ -25,6 +25,8 @@ class Body(QWidget):
         self.setGeometry(100, 100, QApplication.desktop().width() // 2, QApplication.desktop().height() // 2)
         self.init()
 
+        self.used = set()
+
     def init(self):
         # 报名的老师
         self.sign_up = QPushButton(self)
@@ -45,18 +47,12 @@ class Body(QWidget):
         self.candidate.setStyleSheet(button_style)
         self.candidate.clicked.connect(lambda : candidates(self, self.candidate))
 
-        # 津南考场
-        self.jin_nan_exam_room = QPushButton(self)
-        self.jin_nan_exam_room.setText("津南考场名单")
-        self.jin_nan_exam_room.setStyleSheet(button_style)
-        self.jin_nan_exam_room.clicked.connect(lambda : jin_nan(self, self.jin_nan_exam_room))
+        # 考场
+        self.exam_room = QPushButton(self)
+        self.exam_room.setText("考场名单(津南四级|津南六级|八里台四级|八里台六级)")
+        self.exam_room.setStyleSheet(button_style)
+        self.exam_room.clicked.connect(lambda : exam_room(self, self.exam_room))
 
-
-        # 八里台考场
-        self.balitai_exam_room = QPushButton(self)
-        self.balitai_exam_room.setText("八里台考场名单")
-        self.balitai_exam_room.setStyleSheet(button_style)
-        self.balitai_exam_room.clicked.connect(lambda :balitai(self, self.balitai_exam_room))
 
         # 提交
         self.submit = QPushButton(self)
@@ -72,8 +68,7 @@ class Body(QWidget):
         teacher_horizontal.addWidget(self.sign_up)
         teacher_horizontal.addWidget(self.main_monitor)
         teacher_horizontal.addWidget(self.candidate)
-        room_horizontal.addWidget(self.jin_nan_exam_room)
-        room_horizontal.addWidget(self.balitai_exam_room)
+        room_horizontal.addWidget(self.exam_room)
 
         main_vertical = QVBoxLayout()
         main_vertical.addLayout(teacher_horizontal)
@@ -93,22 +88,35 @@ class Body(QWidget):
     def update_candidate(self, dt: pd.DataFrame):
         self.candidate_list = dt
 
-    # 津南考场名单
-    def update_jinnan(self, dt: pd.DataFrame):
-        self.jin_nan_list = dt
+    # 考场名单
+    def update_exam_room(
+            self,
+            jin_nan4_dt: pd.DataFrame,
+            jin_nan6_dt: pd.DataFrame,
+            balitai4_dt: pd.DataFrame,
+            balitai6_dt: pd.DataFrame
+    ):
+        self.jin_nan4_dt = jin_nan4_dt
+        self.jin_nan6_dt = jin_nan6_dt
+        self.balitai4_dt = balitai4_dt
+        self.balitai6_dt = balitai6_dt
 
-    # 八里台考场名单
-    def update_balitai(self, dt: pd.DataFrame):
-        self.balitai_list = dt
-
-    def get_status(self, campus: str = "津南校区"):
+    def get_status(self, campus: str = "津南校区", exam_type: str = "4"):
         assert campus in ['津南校区', '八里台校区']
         room_in_campus = self.jin_nan_list if campus == "津南校区" else self.balitai_list
-        num_of_mm = len(room_in_campus)
+        num_of_mm_needed = len(room_in_campus)
 
-        sign_in_campus = self.sign_list[self.sign_list["校区"]==campus]
+        # 对应校区、对应考试等级的报名老师
+        sign_in_campus = self.sign_list[(self.sign_list["校区"]==campus) & (self.sign_list["级别"].str.contains(exam_type)) & (~self.sign_list["监考教师姓名"].isin(self.used))]
         mm_in_campus = sign_in_campus[sign_in_campus["监考教师姓名"].isin(self.mm_list["姓名"].tolist())]
         # 在该校区的报名老师但不是当过主监考的老师
         candidates_in_campus = self.candidate[(self.candidate["姓名"].isin(sign_in_campus["监考教师姓名"].tolist())) & ~(self.candidate["姓名"].isin(mm_in_campus["姓名"].tolist()))]
 
+        # 担任过主监考官的教师人数大于教室数目
+        if len(mm_in_campus) >= num_of_mm_needed:
+            pass
+        else:
+            pass
 
+    def reset(self):
+        self.used.clear()
