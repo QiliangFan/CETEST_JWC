@@ -104,9 +104,12 @@ def submit(parent):
             traceback.print_exc()
 
     execel_writer = pd.ExcelWriter("考场分配.xlsx")
+    total = pd.DataFrame()
     for k in result:
         if result[k] is not None:
             dt = result[k]
+            total = total.append(dt, ignore_index=True)
             dt.to_excel(execel_writer, sheet_name=map_k[k], index=False)
+    total.to_excel(execel_writer, sheet_name="全部", index=False)
     execel_writer.close()
     print("debug")
