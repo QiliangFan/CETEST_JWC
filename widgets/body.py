@@ -220,6 +220,85 @@ class Body(QWidget):
                             print("未匹配教师: ", teacher, gender)
         assert len(result) == len(room_in_campus), f"分配配对数{len(result)}, 所需的配对数{len(room_in_campus)}"
         assign = {}
-        for room, (t1, t2) in zip(room_in_campus["发卷点"].tolist(), result):
+        for room, (t1, t2) in zip(room_in_campus["考场地址及名称"].tolist(), result):
             assign[str(room)] = [t1, t2]
         print(f"{campus} - {exam_type} - Finish!")
+
+        rooms = list(assign.keys())
+        mm = [v[0] for v in assign.values()]
+        vice_mm = [v[1] for v in assign.values()]
+        room_ids = []
+        campus_ids = []
+        fajuandian = []
+        locations = []
+        types = []
+
+        # 主考官
+        mm_danwei = []
+        mm_name = []
+        mm_gender = []
+        mm_gongzihao = []
+        mm_tag = []
+        mm_phone_number = []
+        mm_take_bus = []
+
+        # 副监考
+        vice_danwei = []
+        vice_name = []
+        vice_gender = []
+        vice_gongzihao = []
+        vice_tag = []
+        vice_phone_number = []
+        vice_take_bus = []
+
+        for r, m, v in zip(rooms, mm, vice_mm):
+            r_obj = room_in_campus[room_in_campus["考场地址及名称"] == r]
+            m_obj = sign_in_campus[sign_in_campus["监考教师姓名"] == m]
+            v_obj = sign_in_campus[sign_in_campus["监考教师姓名"] == v]
+            room_ids.append(r_obj["考场号"].item())
+            campus_ids.append(r_obj["校区代码"].item())
+            fajuandian.append(r_obj["发卷点"].item())
+            locations.append(r_obj["考场地址及名称"].item())
+            types.append(r_obj["科目级别"].item())
+
+            mm_danwei.append(m_obj["所在单位"].item())
+            mm_name.append(m_obj["监考教师姓名"].item())
+            mm_gender.append(m_obj["性别"].item())
+            mm_gongzihao.append(m_obj["工资号"].item())
+            mm_tag.append("主监考")
+            mm_phone_number.append(m_obj["手机号码"].item())
+            mm_take_bus.append(m_obj["是否乘车"].item())
+
+            vice_danwei.append(v_obj["所在单位"].item())
+            vice_name.append(v_obj["监考教师姓名"].item())
+            vice_gender.append(v_obj["性别"].item())
+            vice_gongzihao.append(v_obj["工资号"].item())
+            vice_tag.append("副监考")
+            vice_phone_number.append(v_obj["手机号码"].item())
+            vice_take_bus.append(v_obj["是否乘车"].item())
+
+
+        dt = pd.DataFrame({
+            "考场号": room_ids,
+            "校区代码": campus_ids,
+            "发卷点": fajuandian,
+            "考场地址及名称": locations,
+            "科目级别": types,
+            "所在单位": mm_danwei,
+            "监考教师姓名": mm_name,
+            "性别": mm_gender,
+            "工资号": mm_gongzihao,
+            "主监考": mm_tag,
+            "手机号码": mm_phone_number,
+            "是否乘车": mm_take_bus,
+            "所在单位1": vice_danwei,
+            "监考教师姓名1": vice_name,
+            "性别1": vice_gender,
+            "工资号1": vice_gongzihao,
+            "主监考1": vice_tag,
+            "手机号码1": vice_phone_number,
+            "是否乘车1": vice_take_bus,
+
+        })
+
+        return dt

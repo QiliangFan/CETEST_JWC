@@ -2,6 +2,12 @@ import pandas as pd
 from PyQt5.QtWidgets import QFileDialog, QWidget, QPushButton
 from typing import Union, List, cast
 
+map_k = {
+    "jinnan4": "津南四级",
+    "jinnan6": "津南六级",
+    "balitai4": "八里台四级",
+    "balitai6": "八里台六级"
+}
 
 def __read_file(parent, sheet_name: Union[int, List] = 0) -> Union[pd.DataFrame, dict, None]:
     file_selector = QFileDialog(parent, filter="Table (*.csv, *.xlsx, *.xls)")
@@ -65,7 +71,6 @@ def exam_room(parent, widget: QPushButton):
             dt["八里台六级"]
         )
 
-
 def submit(parent):
     from .body import Body
     parent = cast(Body, parent)
@@ -98,4 +103,10 @@ def submit(parent):
             import traceback
             traceback.print_exc()
 
+    execel_writer = pd.ExcelWriter("考场分配.xlsx")
+    for k in result:
+        if result[k] is not None:
+            dt = result[k]
+            dt.to_excel(execel_writer, sheet_name=map_k[k], index=False)
+    execel_writer.close()
     print("debug")
