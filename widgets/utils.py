@@ -81,12 +81,18 @@ def submit(parent):
         except:
             import traceback
             traceback.print_exc()
+            result["jinnan4"] = None
+    else:
+        result["jinnan4"] = None
+
     if parent.jin_nan6_dt is not None:
         try:
             result["jinnan6"] = parent.get_status(campus="津南校区", exam_type="6")
         except:
             import traceback
             traceback.print_exc()
+    else:
+        result["jinnan6"] = None
 
     if parent.balitai4_dt is not None:
         try:
@@ -94,7 +100,9 @@ def submit(parent):
         except:
             import traceback
             traceback.print_exc()
-
+            result["balitai4"] = None
+    else:
+        result["balitai4"] = None
 
     if parent.balitai6_dt is not None:
         try:
@@ -102,6 +110,9 @@ def submit(parent):
         except:
             import traceback
             traceback.print_exc()
+            result["balitai6"] = None
+    else:
+        result["balitai6"] = None
 
     execel_writer = pd.ExcelWriter("考场分配.xlsx")
     total = pd.DataFrame()
@@ -110,6 +121,91 @@ def submit(parent):
             dt = result[k]
             total = total.append(dt, ignore_index=True)
             dt.to_excel(execel_writer, sheet_name=map_k[k], index=False)
+        else:
+            dt = pd.DataFrame()
+            dt.to_excel(execel_writer, sheet_name=map_k[k], index=False)
     total.to_excel(execel_writer, sheet_name="全部", index=False)
     execel_writer.close()
     print("debug")
+
+
+def generate_contact(parent):
+    combination = pd.DataFrame(columns=[
+        "所在单位",
+        "监考教师姓名",
+        "性别",
+        "工资号",
+        "手机号码",
+        "四级级别",
+        "四级发卷点",
+        "四级监考",
+        "六级级别",
+        "六级发卷点",
+        "六级监考"
+    ])
+    for _type in ["津南四级", "津南六级", "八里台四级", "八里台六级"]:
+        try:
+            dt: pd.DataFrame = pd.read_excel("考场分配.xlsx", sheet_name=_type)
+            for idx, line in dt.iterrows():
+                name = line["监考教师姓名"]
+                name1 = line["监考教师姓名1"]
+                if len(combination[combination["监考教师姓名"] == name]) > 0:
+                    concat_dt = combination[combination["监考教师姓名"] == name]
+                    combination = combination.drop(combination[combination["监考教师姓名"] == name])
+                    assert concat_dt["所在单位"] == line["所在单位"]
+                    if "四级" in _type:
+                        concat_dt["四级级别"] = "英语四级"
+                        concat_dt["四级监考"] = "主监考"
+                        concat_dt["四级发卷点"] = line["发卷点"]
+                    else:
+                        concat_dt["六级级别"] = "英语六级"
+                        concat_dt["六级监考"] = "主监考"
+                        concat_dt["六级发卷点"] = line["发卷点"]
+                else:
+                    concat_dt = pd.DataFrame({
+                        "所在单位": [line["所在单位"]],
+                        "监考教师姓名": [name],
+                        "性别": [line["性别"]],
+                        "工资号": [line["工资号"]],
+                        "手机号码": [line["手机号码"]],
+                        "四级级别": ["英语四级" if "四级" in _type else ""],
+                        "四级发卷点": [line["发卷点"] if "四级" in _type else ""],
+                        "四级监考": ["主监考" if "四级" in _type else ""],
+                        "六级级别": ["英语六级" if "六级" in _type else ""],
+                        "六级发卷点": [line["发卷点"] if "六级" in _type else ""],
+                        "六级监考": ["主监考" if "六级" in _type else ""]
+                    })
+                combination = combination.append(concat_dt)
+
+                if len(combination[combination["监考教师姓名"] == name1]) > 0:
+                    concat_dt = combination[combination["监考教师姓名1"] == name1]
+                    combination = combination.drop(combination[combination["监考教师姓名1"] == name1])
+                    assert concat_dt["所在单位"] == line["所在单位1"]
+                    if "四级" in _type:
+                        concat_dt["四级级别"] = "英语四级"
+                        concat_dt["四级监考"] = "主监考"
+                        concat_dt["四级发卷点"] = line["发卷点"]
+                    else:
+                        concat_dt["六级级别"] = "英语六级"
+                        concat_dt["六级监考"] = "副监考"
+                        concat_dt["六级发卷点"] = line["发卷点"]
+                else:
+                    concat_dt = pd.DataFrame({
+                        "所在单位": [line["所在单位1"]],
+                        "监考教师姓名": [name1],
+                        "性别": [line["性别1"]],
+                        "工资号": [line["工资号1"]],
+                        "手机号码": [line["手机号码1"]],
+                        "四级级别": ["英语四级" if "四级" in _type else ""],
+                        "四级发卷点": [line["发卷点"] if "四级" in _type else ""],
+                        "四级监考": ["副监考" if "四级" in _type else ""],
+                        "六级级别": ["英语六级" if "六级" in _type else ""],
+                        "六级发卷点": [line["发卷点"] if "六级" in _type else ""],
+                        "六级监考": ["副监考" if "六级" in _type else ""]
+                    })
+                combination = combination.append(concat_dt)
+        except:
+            import traceback
+            traceback.print_exc()
+    with pd.ExcelWriter("联系信息.xlsx") as execl_writer:
+        combination.to_excel(execl_writer, index=False)

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout
 from PyQt5.QtWidgets import QApplication
-from .utils import signed_teachers, main_monitors, candidates, exam_room, submit
+from .utils import signed_teachers, main_monitors, candidates, exam_room, submit, generate_contact
 import pandas as pd
 
 button_style = """
@@ -55,21 +55,31 @@ class Body(QWidget):
         self.submit.setStyleSheet(button_style)
         self.submit.clicked.connect(lambda : submit(self))
 
+        # 联系
+        self.contact = QPushButton(self)
+        self.contact.setText("生成联系方式")
+        self.contact.setStyleSheet(button_style)
+        self.contact.clicked.connect(lambda : generate_contact(self))
+
+
         # teacher layout
         teacher_horizontal = QHBoxLayout()
         teacher_horizontal.setSpacing(20)
 
         room_horizontal = QHBoxLayout()
+        submit_horizontal = QHBoxLayout()
 
         teacher_horizontal.addWidget(self.sign_up)
         teacher_horizontal.addWidget(self.main_monitor)
         teacher_horizontal.addWidget(self.candidate)
         room_horizontal.addWidget(self.exam_room)
+        submit_horizontal.addWidget(self.submit)
+        submit_horizontal.addWidget(self.contact)
 
         main_vertical = QVBoxLayout()
         main_vertical.addLayout(teacher_horizontal)
         main_vertical.addLayout(room_horizontal)
-        main_vertical.addWidget(self.submit)
+        main_vertical.addLayout(submit_horizontal)
         self.setLayout(main_vertical)
 
     # 报名老师名单
@@ -110,7 +120,7 @@ class Body(QWidget):
         num_of_mm_needed = len(room_in_campus)
 
         # 对应校区、对应考试等级的报名老师
-        sign_in_campus = self.sign_list[(self.sign_list["校区"]==campus) & (self.sign_list["级别"].str.contains(exam_type))]
+        sign_in_campus = self.sign_list[(self.sign_list["校区"].str.contains(campus)) & (self.sign_list["级别"].str.contains(exam_type))]
         mm_in_campus = sign_in_campus[sign_in_campus["监考教师姓名"].isin(self.mm_list["姓名"].tolist())]
         # 在该校区的报名老师但不是当过主监考的老师
         candidates_in_campus = self.candidate_list[
