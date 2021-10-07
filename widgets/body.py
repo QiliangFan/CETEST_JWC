@@ -22,7 +22,7 @@ class Body(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setGeometry(100, 100, QApplication.desktop().width() // 2, QApplication.desktop().height() // 2)
+        self.setGeometry(100, 100, QApplication.desktop().width() // 4, QApplication.desktop().height() // 4)
         self.init()
 
     def init(self):
