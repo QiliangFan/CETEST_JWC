@@ -22,7 +22,7 @@ class Body(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setGeometry(100, 100, QApplication.desktop().width() // 4, QApplication.desktop().height() // 4)
+        self.setGeometry(100, 100, QApplication.desktop().width() // 3, QApplication.desktop().height() // 3)
         self.init()
 
     def init(self):
@@ -34,13 +34,13 @@ class Body(QWidget):
 
         # 担任过主考官的老师
         self.main_monitor = QPushButton(self)
-        self.main_monitor.setText("担任过主考官的名单")
+        self.main_monitor.setText("主监考库")
         self.main_monitor.setStyleSheet(button_style)
         self.main_monitor.clicked.connect(lambda : main_monitors(self, self.main_monitor))
 
         # 候选的老师
         self.candidate = QPushButton(self)
-        self.candidate.setText("候选老师名单")
+        self.candidate.setText("备用主监考库")
         self.candidate.setStyleSheet(button_style)
         self.candidate.clicked.connect(lambda : candidates(self, self.candidate))
         # 考场
@@ -146,7 +146,7 @@ class Body(QWidget):
             num += len(teacher_set)
 
         # 从候选里面选择
-        if num < num_of_mm_needed:
+        while num < num_of_mm_needed:
             candidate = sign_in_campus[sign_in_campus["监考教师姓名"].isin(candidates_in_campus["姓名"].tolist())]
             for (gender, danwei), group in candidate.groupby(["性别", "所在单位"], dropna=False):
                 if str(gender) not in mm_dict:
@@ -162,8 +162,8 @@ class Body(QWidget):
                     break
 
         # 从参加过的老师里面选
-        if num < num_of_mm_needed:
-            exped = sign_in_campus[(~sign_in_campus["监考教师姓名"].isin(used)) & (sign_in_campus["是否参加过"] == "参加过")]
+        while num < num_of_mm_needed:
+            exped = sign_in_campus[(~sign_in_campus["监考教师姓名"].isin(used)) & (sign_in_campus["是否参加过"].isin(["是", "参加过"]) )]
             for (gender, danwei), group in exped.groupby(["性别", "所在单位"], dropna=False):
                 if str(gender) not in mm_dict:
                     mm_dict[gender] = {}
@@ -180,8 +180,6 @@ class Body(QWidget):
 
         # 从所有未安排为主考官的老师里面选择
         not_mm = sign_in_campus[
-            ~(sign_in_campus["监考教师姓名"].isin(self.mm_list["姓名"].tolist())) & \
-            ~(sign_in_campus["监考教师姓名"].isin(candidates_in_campus["姓名"].tolist())) & \
             ~(sign_in_campus["监考教师姓名"].isin(used))
         ]
         not_num = 0
@@ -196,17 +194,23 @@ class Body(QWidget):
             not_num += len(teacher_set)
         print(f"not_mm_len: {not_num} |  total: {len(not_mm)}")
 
+        import random
+
         result = set()
         used.clear()
         for gender in ["男", "女"]:
-            for campus_tmp in mm_dict[gender]:
+            mm_campus_random = list(set(mm_dict[gender].keys()))
+            random.shuffle(mm_campus_random)
+            for campus_tmp in mm_campus_random:
                 for teacher in mm_dict[gender][campus_tmp]:
                     if teacher not in used:
                         _pair = None
                         for _gender in not_mm_dict:
                             if _pair is not None: break
                             if _gender != gender:
-                                for _campus in not_mm_dict[_gender]:
+                                not_mm_campus_random = list(set(not_mm_dict[_gender].keys()))
+                                random.shuffle(not_mm_campus_random)
+                                for _campus in not_mm_campus_random:
                                     if _pair is not None: break
                                     if _campus != campus_tmp:
                                         for _teacher in not_mm_dict[_gender][_campus]:

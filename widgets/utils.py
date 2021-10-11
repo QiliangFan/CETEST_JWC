@@ -1,5 +1,5 @@
 import pandas as pd
-from PyQt5.QtWidgets import QFileDialog, QWidget, QPushButton
+from PyQt5.QtWidgets import QFileDialog, QWidget, QPushButton, QDialog, QMessageBox
 from typing import Union, List, cast
 
 map_k = {
@@ -42,6 +42,10 @@ def add_right(func):
 @add_right
 def signed_teachers(parent, widget: QPushButton):
     dt = __read_file(parent)
+    names = dt["监考教师姓名"].tolist()
+    if len(names) != len(set(names)):
+        QMessageBox.critical(parent, "错误信息", "存在重名老师!")
+        return
     if dt is not None:
         parent.update_sign(dt)
 
@@ -75,42 +79,54 @@ def submit(parent):
     from .body import Body
     parent = cast(Body, parent)
     result = {}
+
+    if_error = False
+
     if parent.jin_nan4_dt is not None:
         try:
             result["jinnan4"] = parent.get_status(campus="津南校区", exam_type="4")
+            QMessageBox.information(parent, "津南4级", "津南4级安排完成!")
         except:
             import traceback
             traceback.print_exc()
             result["jinnan4"] = None
+            QMessageBox.critical(parent, "津南4级", "津南4级安排失败!")
     else:
         result["jinnan4"] = None
 
     if parent.jin_nan6_dt is not None:
         try:
             result["jinnan6"] = parent.get_status(campus="津南校区", exam_type="6")
+            QMessageBox.information(parent, "津南6级", "津南6级安排完成!")
         except:
             import traceback
             traceback.print_exc()
+            result["jinnan6"] = None
+            QMessageBox.critical(parent, "津南6级", "津南6级安排失败!")
     else:
         result["jinnan6"] = None
 
     if parent.balitai4_dt is not None:
         try:
             result["balitai4"] = parent.get_status(campus="八里台校区", exam_type="4")
+            QMessageBox.information(parent, "八里台4级", "八里台4级安排完成!")
         except:
             import traceback
             traceback.print_exc()
             result["balitai4"] = None
+            QMessageBox.critical(parent, "八里台4级", "八里台4级安排失败!")
     else:
         result["balitai4"] = None
 
     if parent.balitai6_dt is not None:
         try:
             result["balitai6"] = parent.get_status(campus="八里台校区", exam_type="6")
+            QMessageBox.information(parent, "八里台6级", "八里台6级安排完成!")
         except:
             import traceback
             traceback.print_exc()
             result["balitai6"] = None
+            QMessageBox.critical(parent, "八里台6级", "八里台6级安排失败!")
     else:
         result["balitai6"] = None
 
@@ -126,10 +142,14 @@ def submit(parent):
             dt.to_excel(execel_writer, sheet_name=map_k[k], index=False)
     total.to_excel(execel_writer, sheet_name="全部", index=False)
     execel_writer.close()
+
+
     print("debug")
 
 
 def generate_contact(parent):
+    file_selector = QFileDialog(parent, filter="Table (*.csv, *.xlsx, *.xls)")
+    file_path = file_selector.getOpenFileName()[0]
     combination = pd.DataFrame(columns=[
         "所在单位",
         "监考教师姓名",
@@ -145,14 +165,14 @@ def generate_contact(parent):
     ])
     for _type in ["津南四级", "津南六级", "八里台四级", "八里台六级"]:
         try:
-            dt: pd.DataFrame = pd.read_excel("考场分配.xlsx", sheet_name=_type)
+            dt: pd.DataFrame = pd.read_excel(file_path, sheet_name=_type)
             for idx, line in dt.iterrows():
                 name = line["监考教师姓名"]
                 name1 = line["监考教师姓名1"]
                 if len(combination[combination["监考教师姓名"] == name]) > 0:
                     concat_dt = combination[combination["监考教师姓名"] == name]
-                    combination = combination.drop(combination[combination["监考教师姓名"] == name])
-                    assert concat_dt["所在单位"] == line["所在单位"]
+                    combination = combination.drop(combination[combination["监考教师姓名"] == name].index)
+                    assert concat_dt["所在单位"].item() == line["所在单位"]
                     if "四级" in _type:
                         concat_dt["四级级别"] = "英语四级"
                         concat_dt["四级监考"] = "主监考"
@@ -175,12 +195,12 @@ def generate_contact(parent):
                         "六级发卷点": [line["发卷点"] if "六级" in _type else ""],
                         "六级监考": ["主监考" if "六级" in _type else ""]
                     })
-                combination = combination.append(concat_dt)
+                combination = combination.append(concat_dt, ignore_index=True)
 
                 if len(combination[combination["监考教师姓名"] == name1]) > 0:
-                    concat_dt = combination[combination["监考教师姓名1"] == name1]
-                    combination = combination.drop(combination[combination["监考教师姓名1"] == name1])
-                    assert concat_dt["所在单位"] == line["所在单位1"]
+                    concat_dt = combination[combination["监考教师姓名"] == name1]
+                    combination = combination.drop(combination[combination["监考教师姓名"] == name1].index)
+                    assert concat_dt["所在单位"].item() == line["所在单位1"]
                     if "四级" in _type:
                         concat_dt["四级级别"] = "英语四级"
                         concat_dt["四级监考"] = "主监考"
@@ -203,7 +223,7 @@ def generate_contact(parent):
                         "六级发卷点": [line["发卷点"] if "六级" in _type else ""],
                         "六级监考": ["副监考" if "六级" in _type else ""]
                     })
-                combination = combination.append(concat_dt)
+                combination = combination.append(concat_dt, ignore_index=True)
         except:
             import traceback
             traceback.print_exc()
